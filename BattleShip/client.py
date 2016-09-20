@@ -8,11 +8,13 @@ y = None
 
 
 def main():
+    global x
+    global y
     ipadress = sys.argv[1]
     port = sys.argv[2]
     x = sys.argv[3]
     y = sys.argv[4]
-    url = ipadress + ':' + port
+    url = "http://" + ipadress + ':' + port
     payload = {'x': x, 'y': y}
     print("\nSending ", payload, " to IP Address ", url, ".\n")
 
@@ -35,10 +37,13 @@ def hit(binaryinput):
         board[x][y] = 'X'
     if hit == 2:
         board[x][y] = '~'
-    closefile
+    if 'sink' in binaryinput:
+        print("You sunk " + binaryinput[-1] + "!")
+    closefile()
 
 
 def loadfile():
+    global board
     with open("opponent_board.txt") as textFile:
         read = textFile.read()
         empty_check = textFile.read(1)
@@ -56,6 +61,9 @@ def loadfile():
 
 
 def closefile():
+    global board
+    global x
+    global y
     with open("opponent_board.txt", 'w') as textFile:
         for x in range(0, 9):
             for y in range(0, 9):
