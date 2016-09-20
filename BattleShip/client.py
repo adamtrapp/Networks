@@ -1,5 +1,10 @@
 import sys
 import requests
+import re
+
+board = None
+x = None
+y = None
 
 
 def main():
@@ -22,9 +27,40 @@ def main():
         print("Message Not Formatted Correctly! Server returned POST Reason \"Bad Request\"")
 
 
-def hit(input):
-    payload = int(input)
-    #if payload == 1:
+def hit(binaryinput):
+    payload = int(binaryinput)
+    hit = int(re.search(r'\d+', binaryinput).group())
+    loadfile()
+    if hit == 1:
+        board[x][y] = 'X'
+    if hit == 2:
+        board[x][y] = '~'
+    closefile
+
+
+def loadfile():
+    with open("opponent_board.txt") as textFile:
+        read = textFile.read()
+        empty_check = textFile.read(1)
+        if not empty_check:
+            for x in range(0, 9):
+                for y in range(0, 9):
+                    board[x][y] = '_'
+        else:
+            n = 1
+            textFile.seek(0)
+            for x in range(0, 9):
+                for y in range(0, 9):
+                    board[x][y] = textFile.read(n)
+                    n += 1
+
+
+def closefile():
+    with open("opponent_board.txt", 'w') as textFile:
+        for x in range(0, 9):
+            for y in range(0, 9):
+                textFile.write(board[x][y])
+            textFile.write("\n")
 
 
 main()
