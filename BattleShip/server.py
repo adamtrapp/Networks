@@ -202,9 +202,6 @@ def setupGame():
 
 
 def clearOppBoard():
-    with open("opponent_board.txt", 'r+') as textFile:
-        textFile.truncate()
-        textFile.close()
     with open("opponent_board.txt", 'w') as textFile:
         for row in oppBoard:
             for yc in oppBoard[0]:

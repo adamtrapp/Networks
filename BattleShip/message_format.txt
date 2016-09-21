@@ -1,0 +1,22 @@
+Message Formats:
+
+The formats used in this program are those discussed in class. A brief summery is below:
+
+Fire: HTTP POST request. payload of the POST request contains the coordinates in the form x=0&y=1.
+	The board is zero-indexed. x forresponds to the row, y corresponds to the column.
+	
+Result of salvo: HTTP response. If the fire request is formatted correctly and the target has not been fired upon,
+	the response will be code 200, OK, with payload hit=1 for a hit and hit=0 for a miss. If a ship is sunk, the
+	payload will be hit=1&sunk=C (or B,R,S,D for other ships)
+	
+	If the request is not formatted correctly, the server will respond with code 400, Bad Request.
+	
+	If the salvo is fired at a target that has already been fired upon, the server will repsond with code 410, GONE.
+	
+HTTP GET requests are handled based on the request path. own_board.html returns a simple html representation of the 
+	player's board along with hits remaining for each ship. opponent_board.html will return a simple html representation
+	of the opponent's board. (tested in Chrome, the page displays correctly. The html probably won't validate.)
+	
+While the architecture of this program is symmetric client-server, a local file "opponent_board.txt" is maintained.
+	The server clears this board when started, and the client edits it with the result of each shot. This file is then
+	read when the opponet_board.html page is requested.
