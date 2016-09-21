@@ -206,8 +206,8 @@ def clearOppBoard():
         textFile.truncate()
         textFile.close()
     with open("opponent_board.txt", 'w') as textFile:
-        for row in range(0,9):
-            for yc in range(0,9):
+        for row in oppBoard:
+            for yc in oppBoard[0]:
                 textFile.write("_")
             textFile.write("\n")
         textFile.close()
@@ -247,6 +247,8 @@ def loadOppBoard():
             y = 0
             line = textFile.readline()
             x += 1
+        while line is not "":
+            line = textFile.readline()
     textFile.close()
 
 

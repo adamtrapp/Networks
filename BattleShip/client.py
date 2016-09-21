@@ -66,7 +66,7 @@ def loadfile():
         n = 1
         textFile.seek(0)
         line = textFile.readline()
-        while line is not None and x < len(board):
+        while line != "" and x < len(board):
             for character in line:
                 if y < len(board[x]):
                     board[x][y] = character
@@ -74,6 +74,8 @@ def loadfile():
             y = 0
             line = textFile.readline()
             x += 1
+        while line != "":
+            line = textFile.readline()
     textFile.close()
 
 
