@@ -2,16 +2,16 @@ import sys
 import requests
 import re
 
-board = [['_', '_', '_', '_', '_', '_', '_', '_', '_', '_'],
-         ['_', '_', '_', '_', '_', '_', '_', '_', '_', '_'],
-         ['_', '_', '_', '_', '_', '_', '_', '_', '_', '_'],
-         ['_', '_', '_', '_', '_', '_', '_', '_', '_', '_'],
-         ['_', '_', '_', '_', '_', '_', '_', '_', '_', '_'],
-         ['_', '_', '_', '_', '_', '_', '_', '_', '_', '_'],
-         ['_', '_', '_', '_', '_', '_', '_', '_', '_', '_'],
-         ['_', '_', '_', '_', '_', '_', '_', '_', '_', '_'],
-         ['_', '_', '_', '_', '_', '_', '_', '_', '_', '_'],
-         ['_', '_', '_', '_', '_', '_', '_', '_', '_', '_']]
+board = [['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', '']]
 x = int
 y = int
 
@@ -19,6 +19,7 @@ y = int
 def main():
     global x
     global y
+    loadfile()
     ipadress = sys.argv[1]
     port = sys.argv[2]
     x = sys.argv[3]
@@ -47,7 +48,7 @@ def hit(binaryinput):
     xint = int(x)
     yint = int(y)
     hit = int(re.search(r'\d+', binaryinput).group())
-    loadfile()
+
     if hit == 1:
         board[xint][yint] = 'X'
     if hit == 0:
@@ -59,19 +60,20 @@ def hit(binaryinput):
 
 def loadfile():
     global board
+    x = 0
+    y = 0
     with open("opponent_board.txt", 'r+') as textFile:
-        n = 0
+        n = 1
         textFile.seek(0)
-        for xl in range(0, 9):
-            for yl in range(0, 9):
-                if textFile.read(n) == '':
-                    board[xl][yl] = '_'
-                else:
-                    board[xl][yl] = textFile.read(n)
-                if yl == 9:
-                    n += 2
-                if yl != 9:
-                    n += 1
+        line = textFile.readline()
+        while line is not None and x < len(board):
+            for character in line:
+                if y < len(board[x]):
+                    board[x][y] = character
+                    y += 1
+            y = 0
+            line = textFile.readline()
+            x += 1
     textFile.close()
 
 
@@ -81,9 +83,9 @@ def closefile():
         textFile.truncate()
         textFile.close()
     with open("opponent_board.txt", 'w') as textFile:
-        for xc in range(0, 9):
-            for yc in range(0, 9):
-                textFile.write(board[xc][yc])
+        for row in board:
+            for yc in row:
+                textFile.write(yc)
             textFile.write("\n")
         textFile.close()
 
