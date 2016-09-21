@@ -4,17 +4,27 @@ import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from http.client import parse_headers
 
-board = [['C', 'C', 'C', 'C', 'C', '_', '_', '_', '_', '_'],
-         ['B', 'B', 'B', 'B', '_', '_', '_', '_', '_', '_'],
-         ['R', 'R', 'R', '_', '_', '_', '_', '_', '_', '_'],
-         ['S', 'S', 'S', '_', '_', '_', '_', '_', '_', '_'],
-         ['D', '_', '_', '_', '_', '_', '_', '_', '_', '_'],
-         ['D', '_', '_', '_', '_', '_', '_', '_', '_', '_'],
-         ['_', '_', '_', '_', '_', '_', '_', '_', '_', '_'],
-         ['_', '_', '_', '_', '_', '_', '_', '_', '_', '_'],
-         ['_', '_', '_', '_', '_', '_', '_', '_', '_', '_'],
-         ['_', '_', '_', '_', '_', '_', '_', '_', '_', '_']]
+ownBoard = [['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', '']]
 
+oppBoard = [['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', ''],
+         ['', '', '', '', '', '', '', '', '', '']]
 carrier = 5
 battleship = 4
 cruiser = 3
@@ -34,7 +44,7 @@ class boardHandler(BaseHTTPRequestHandler):
         if url=="/own_board.html":
             message = "<h1>Your Board</h1>\n<table>\n"
             self.wfile.write(message.encode('utf-8'))
-            for row in board:
+            for row in ownBoard:
                 row_string = ""
                 for character in row:
                     row_string = row_string + "<td>" + character + "</td>\n "
@@ -50,7 +60,8 @@ class boardHandler(BaseHTTPRequestHandler):
         elif url=="/opponent_board.html":
             message = "<h1>Opponent's Board</h1>\n<table>\n"
             self.wfile.write(message.encode('utf-8'))
-            for row in board:
+            loadOppBoard()
+            for row in oppBoard:
                 row_string = ""
                 for character in row:
                     row_string = row_string + "<td>" + character + "</td>\n "
@@ -58,11 +69,6 @@ class boardHandler(BaseHTTPRequestHandler):
                 self.wfile.write(row_string.encode('utf-8'))
             table_close = "</table>"
             self.wfile.write(table_close.encode('utf-8'))
-            stats = "<p>Hits Left:</p>\n <p>Carrier: " + str(carrier) + "</p>\n<p>Battleship: " + str(
-                battleship) + "</p>\n<p>Cruiser: " + str(cruiser) + "" \
-                                                                    "</p>\n<p>Submarine: " + str(
-                submarine) + "</p>\n<p>Destroyer: " + str(destroyer) + "</p>"
-            self.wfile.write(stats.encode('utf-8'))
             url = self.path
             print(url)
         else:
@@ -73,7 +79,7 @@ class boardHandler(BaseHTTPRequestHandler):
         return
 
     def do_POST(self):
-        global board
+        global ownBoard
         sunk = 0
         content_len = int(self.headers.get('Content-Length'))
         post_body = str(self.rfile.read(content_len))
@@ -91,9 +97,9 @@ class boardHandler(BaseHTTPRequestHandler):
             self.send_header('Connection', 'close')
             self.end_headers()
         else:
-            target = board[x][y]
+            target = ownBoard[x][y]
             if target == "C":
-                board[x][y] = "X"
+                ownBoard[x][y] = "X"
                 global carrier
                 carrier -= 1
                 if carrier == 0:
@@ -109,7 +115,7 @@ class boardHandler(BaseHTTPRequestHandler):
                     msg = "hit=1"
                     self.wfile.write(msg.encode('utf-8'))
             elif target == "B":
-                board[x][y] = "X"
+                ownBoard[x][y] = "X"
                 global battleship
                 battleship -= 1
                 if battleship == 0:
@@ -125,7 +131,7 @@ class boardHandler(BaseHTTPRequestHandler):
                     msg = "hit=1"
                     self.wfile.write(msg.encode('utf-8'))
             elif target == "R":
-                board[x][y] = "X"
+                ownBoard[x][y] = "X"
                 global cruiser
                 cruiser -= 1
                 if cruiser == 0:
@@ -141,7 +147,7 @@ class boardHandler(BaseHTTPRequestHandler):
                     msg = "hit=1"
                     self.wfile.write(msg.encode('utf-8'))
             elif target == "S":
-                board[x][y] = "X"
+                ownBoard[x][y] = "X"
                 global submarine
                 submarine -= 1
                 if submarine == 0:
@@ -157,7 +163,7 @@ class boardHandler(BaseHTTPRequestHandler):
                     msg = "hit=1"
                     self.wfile.write(msg.encode('utf-8'))
             elif target == "S":
-                board[x][y] = "X"
+                ownBoard[x][y] = "X"
                 global destroyer
                 destroyer -= 1
                 if destroyer == 0:
@@ -177,7 +183,7 @@ class boardHandler(BaseHTTPRequestHandler):
                     self.send_header('Connection', 'close')
                     self.end_headers()
             else:
-                board[x][y] = "X"
+                ownBoard[x][y] = "X"
                 self.send_response(200)
                 self.send_header('Connection', 'close')
                 self.end_headers()
@@ -189,7 +195,63 @@ class boardHandler(BaseHTTPRequestHandler):
 
 PORT_NUMBER = int(sys.argv[1])
 
+
+def setupGame():
+    loadOwnBoard()
+    clearOppBoard()
+
+
+def clearOppBoard():
+    with open("opponent_board.txt", 'r+') as textFile:
+        textFile.truncate()
+        textFile.close()
+    with open("opponent_board.txt", 'w') as textFile:
+        for row in range(0,9):
+            for yc in range(0,9):
+                textFile.write("_")
+            textFile.write("\n")
+        textFile.close()
+
+
+def loadOwnBoard():
+    global ownBoard
+    x = 0
+    y = 0
+    with open(sys.argv[2], 'r+') as textFile:
+        n = 1
+        textFile.seek(0)
+        line = textFile.readline()
+        while line is not None and x < len(ownBoard):
+            for character in line:
+                if y < len(ownBoard[x]):
+                    ownBoard[x][y] = character
+                    y += 1
+            y = 0
+            line = textFile.readline()
+            x += 1
+    textFile.close()
+
+def loadOppBoard():
+    global oppBoard
+    x = 0
+    y = 0
+    with open("opponent_board.txt", 'r+') as textFile:
+        n = 1
+        textFile.seek(0)
+        line = textFile.readline()
+        while line is not None and x < len(oppBoard):
+            for character in line:
+                if y < len(oppBoard[x]):
+                    oppBoard[x][y] = character
+                    y += 1
+            y = 0
+            line = textFile.readline()
+            x += 1
+    textFile.close()
+
+
 try:
+    setupGame()
     server = HTTPServer(('', PORT_NUMBER), boardHandler)
     server.serve_forever()
 
