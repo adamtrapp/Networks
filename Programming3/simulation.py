@@ -63,8 +63,7 @@ if __name__ == '__main__':
     for t in thread_L:
         t.start()
 
-    message = "1234567890123456789012345678901234567890"
-    message2 = "1234567890123456789012345678901234567890"
+    message = "12345678901234567890123456789012345678901234567890123456789012345678901234567890"
     host1.udt_send(3, message)
     host1.udt_send(3, message2)
     host2.udt_send(3, message)
