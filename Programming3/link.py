@@ -6,6 +6,7 @@ Created on Oct 12, 2016
 
 import queue
 import threading
+from network import NetworkPacket
 
 ## An abstraction of a link between router interfaces
 class Link:
@@ -34,11 +35,18 @@ class Link:
         pkt_S = self.in_intf.get()
         if pkt_S is None:
             return #return if no packet to transfer
-        if len(pkt_S) > self.mtu:
-            print('%s: packet "%s" length greater then link mtu (%d)' % (self, pkt_S, self.mtu))
-            return #return without transmitting if packet too big
-        #otherwise transmit the packet
         try:
+            if len(pkt_S) > self.mtu:
+                # Construct a packet from the string
+                packet = NetworkPacket.from_byte_S(pkt_S)
+
+                # Cut it up into segments and send those
+                while len(packet.data_S + NetworkPacket.data_offset) > self.mtu:
+                    self.out_intf.put(packet.segment(self.mtu - NetworkPacket.data_offset).to_byte_S())
+
+                # Send the packet
+                self.out_inf.put(packet.to_byte_S())
+
             self.out_intf.put(pkt_S)
             print('%s: transmitting packet "%s"' % (self, pkt_S))
         except queue.Full:

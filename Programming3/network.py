@@ -31,22 +31,32 @@ class Interface:
 # NOTE: This class will need to be extended to for the packet to include
 # the fields necessary for the completion of this assignment.
 class NetworkPacket:
-    ## packet encoding lengths 
+    ## packet encoding lengths
+    dst_addr_offset = 0
     dst_addr_S_length = 5
-    
+    seg_flag_offset = dst_addr_offset + dst_addr_S_length
+    seg_flag_length = 1
+    seg_offset_offset = seg_flag_offset + seg_flag_length
+    seg_offset_length = 5
+    data_offset = seg_offset_offset + seg_offset_length
+
     ##@param dst_addr: address of the destination host
     # @param data_S: packet payload
-    def __init__(self, dst_addr, data_S):
+    def __init__(self, dst_addr, data_S, seg_flag = 0, seg_offset = 0):
         self.dst_addr = dst_addr
+        self.seg_flag = seg_flag
+        self.seg_offset = seg_offset
         self.data_S = data_S
         
     ## called when printing the object
     def __str__(self):
         return self.to_byte_S()
-        
+
     ## convert packet to a byte string for transmission over links
     def to_byte_S(self):
         byte_S = str(self.dst_addr).zfill(self.dst_addr_S_length)
+        byte_S += str(self.seg_flag).zfill(self.seg_flag_length)
+        byte_S += str(self.seg_offset).zfill(self.seg_offset_length)
         byte_S += self.data_S
         return byte_S
     
@@ -54,10 +64,53 @@ class NetworkPacket:
     # @param byte_S: byte string representation of the packet
     @classmethod
     def from_byte_S(self, byte_S):
-        dst_addr = int(byte_S[0 : NetworkPacket.dst_addr_S_length])
-        data_S = byte_S[NetworkPacket.dst_addr_S_length : ]
-        return self(dst_addr, data_S)
-    
+        dst_addr = int(byte_S[self.dst_addr_offset : self.dst_addr_offset + self.dst_addr_S_length])
+        seg_flag = int(byte_S[self.seg_flag_offset : self.seg_flag_offset + self.seg_flag_length])
+        seg_offset = int(byte_S[self.seg_offset_offset : self.seg_offset_offset + self.seg_offset_length])
+        data_S = byte_S[self.data_offset : ]
+        return self(dst_addr, data_S, seg_flag, seg_offset)
+
+    # Segments this packet, and returns a new packet starting at the offset
+    def segment(self, offset):
+        # Construct a new packet with data starting at the segment offset
+        packet = NetworkPacket(self.dst_addr, self.data_S[offset:])
+        packet.seg_flag = self.seg_flag # If this packet was segmented, the segment packet needs to be as well
+        packet.seg_offset = self.seg_offset + offset # the new packet has an offset
+
+        # Set the segment flag on this packet and truncate the data
+        self.seg_flag = 1
+        self.data_S = self.data_S[:offset]
+
+        return packet
+
+    def join(packets):
+        # Sort the array of packets by buffer offset
+        packets.sort(key=lambda x: x.seg_offset)
+
+        joined_packets = []
+        packet = None
+
+        for x in packets:
+            # If we haven't started constructing a packet yet
+            if packet is None:
+                packet = NetworkPacket(x.dst_addr, x.data_S, x.seg_flag, x.seg_offset)
+                continue
+
+            # If we have, and this packet is not the next expected packet
+            if x.seg_offset != packet.seg_offset + len(packet.data_S):
+                joined_packets.append(packet)
+                packet = NetworkPacket(x.dst_addr, x.data_S, x.seg_flag, x.seg_offset)
+                continue
+
+            # This packet is just the next part
+            packet.data_S += x.data_S
+            packet.seg_flag = x.seg_flag
+
+        # If we had a packet and we ran out
+        if packet is not None:
+            joined_packets.append(packet)
+
+        return joined_packets
 
     
 
