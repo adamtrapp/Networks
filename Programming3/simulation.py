@@ -15,10 +15,10 @@ simulation_time = 1  # give the network sufficient time to transfer all packets 
 if __name__ == '__main__':
     object_L = []  # keeps track of objects, so we can kill their threads
 
-    aTable = {0:0, 1:1}
+    aTable = {1:0, 2:1}
     bTable = {0:0}
     cTable = {0:0}
-    dTable = {0:0, 1:0}
+    dTable = {1:0, 2:0}
     # create network nodes
     host1 = network.Host(1)
     object_L.append(host1)
@@ -65,9 +65,7 @@ if __name__ == '__main__':
 
     message = "12345678901234567890123456789012345678901234567890123456789012345678901234567890"
     host1.udt_send(3, message)
-    host1.udt_send(3, message2)
     host2.udt_send(3, message)
-    host2.udt_send(3, message2)
     # create some send events
     for i in range(3):
         host1.udt_send(2, 'Sample data %d' % i)
