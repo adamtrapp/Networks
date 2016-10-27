@@ -28,8 +28,8 @@ if __name__ == '__main__':
     object_L.append(link_layer)
     
     #add all the links
-    link_layer.add_link(link.Link(client, 0, router_a, 0, 50))
-    link_layer.add_link(link.Link(router_a, 0, server, 0, 50))
+    link_layer.add_link(link.Link(client, 0, router_a, 0, 20))
+    link_layer.add_link(link.Link(router_a, 0, server, 0, 20))
     
     
     #start all the objects

@@ -52,6 +52,10 @@ class NetworkPacket:
     def __str__(self):
         return self.to_byte_S()
 
+    ## Returns the length (in bytes) of this packet
+    def __len__(self):
+        return self.data_offset + len(self.data_S)
+
     ## convert packet to a byte string for transmission over links
     def to_byte_S(self):
         byte_S = str(self.dst_addr).zfill(self.dst_addr_S_length)
