@@ -19,22 +19,36 @@ if __name__ == '__main__':
     # create network hosts
     client = network.Host(1)
     object_L.append(client)
-    server = network.Host(2)
+    client2 = network.Host(2)
+    object_L.append(client2)
+    server = network.Host(3)
     object_L.append(server)
 
     # create routers and routing tables for connected clients (subnets)
-    router_a_rt_tbl_D = {1: {0: 1}}  # packet to host 1 through interface 0 for cost 1
+    router_a_rt_tbl_D = {1: {0: 1}, 2: {1: 1}, 3: {3: 1}}  # packet to host 1 through interface 0 for cost 1
     router_a = network.Router(name='A',
                               intf_cost_L=[1, 1],
                               rt_tbl_D=router_a_rt_tbl_D,
                               max_queue_size=router_queue_size)
     object_L.append(router_a)
-    router_b_rt_tbl_D = {2: {1: 3}}  # packet to host 2 through interface 1 for cost 3
+    router_b_rt_tbl_D = {1: {2: 3}, 2: {2: 4}, 3: {4: 5}}  # packet to host 2 through interface 1 for cost 3
     router_b = network.Router(name='B',
                               intf_cost_L=[1, 3],
                               rt_tbl_D=router_b_rt_tbl_D,
                               max_queue_size=router_queue_size)
     object_L.append(router_b)
+    router_c_rt_tbl_D = {1: {3: 3}, 2: {3: 4}, 3: {5: 5}}
+    router_c = network.Router(name='C',
+                              intf_cost_L=[1, 3],
+                              rt_tbl_D=router_c_rt_tbl_D,
+                              max_queue_size=router_queue_size)
+    object_L.append(router_c)
+    router_d_rt_tbl_D = {1: {4: 66}, 2: {5: 8}, 3: {6: 1}, 1: {5: 6}}
+    router_d = network.Router(name='C',
+                              intf_cost_L=[1, 3],
+                              rt_tbl_D=router_d_rt_tbl_D,
+                              max_queue_size=router_queue_size)
+    object_L.append(router_d)
 
     # create a Link Layer to keep track of links between network nodes
     link_layer = link.LinkLayer()
@@ -42,8 +56,12 @@ if __name__ == '__main__':
 
     # add all the links
     link_layer.add_link(link.Link(client, 0, router_a, 0))
-    link_layer.add_link(link.Link(router_a, 1, router_b, 0))
-    link_layer.add_link(link.Link(router_b, 1, server, 0))
+    link_layer.add_link(link.Link(client2, 1, router_a, 1))
+    link_layer.add_link(link.Link(router_a, 2, router_b, 2))
+    link_layer.add_link(link.Link(router_a, 3, router_c, 3))
+    link_layer.add_link(link.Link(router_b, 4, router_d, 4))
+    link_layer.add_link(link.Link(router_c, 5, router_d, 5))
+    link_layer.add_link(link.Link(router_d, 6, server, 6))
 
     # start all the objects
     thread_L = []
@@ -68,7 +86,7 @@ if __name__ == '__main__':
 
     # give the network sufficient time to transfer all packets before quitting
     sleep(simulation_time)
-    
+
     # print the final routing tables
     for obj in object_L:
         if str(type(obj)) == "<class 'network.Router'>":
