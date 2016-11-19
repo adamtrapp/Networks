@@ -63,6 +63,12 @@ if __name__ == '__main__':
     # give the network sufficient time to transfer all packets before quitting
     sleep(simulation_time)
 
+    # Host 2 reply
+    server.udt_send(1, 'ack!')
+
+    # give the network sufficient time to transfer all packets before quitting
+    sleep(simulation_time)
+    
     # print the final routing tables
     for obj in object_L:
         if str(type(obj)) == "<class 'network.Router'>":
