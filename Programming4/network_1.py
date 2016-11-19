@@ -146,16 +146,16 @@ class DistanceVector:
     def update_routing_table(self, i, iCost, routingTable):
         modified = False
 
-        # Perform the min between the
         for dest,cost in self.distances.items():
             # If we don't have a route for this destination
-            if not dest in routingTable:
+            if dest not in routingTable:
                 routingTable[dest] = {i: iCost + cost}
                 modified = True
 
             # If we haven't seen a route to this destination from this node
-            elif not i in routingTable[dest]:
+            elif i not in routingTable[dest]:
                 routingTable[dest][i] = iCost + cost
+                modified = True
 
             # If the new route is shorter than the old one
             elif iCost + cost < routingTable[dest][i]:
