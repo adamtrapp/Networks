@@ -134,24 +134,43 @@ class Host:
                 return
 
 
-class RoutingTable:
-    # Creates a generic routing table from a router's interface
+class DistanceVector:
     def __init__(self):
         self.distances = {}
 
-    @staticmethod
-    def from_interface_table(interfaceTable):
-        result = RoutingTable()
+    def from_routing_table(self, routingTable):
+        # Build up the vector, ignoring links
+        for dest,links in routingTable.items():
+            self.distances[dest] = min(links.values())
 
-        # For each reachable destination in the links
-        for dest, links in interfaceTable.items():
-            self.distances = {}
+    def update_routing_table(self, i, iCost, routingTable):
+        modified = False
+
+        # Perform the min between the
+        for dest,cost in self.distances.items():
+            # If we don't have a route for this destination
+            if not dest in routingTable:
+                routingTable[dest] = {i: iCost + cost}
+                modified = True
+
+            # If we haven't seen a route to this destination from this node
+            elif not i in routingTable[dest]:
+                routingTable[dest][i] = iCost + cost
+
+            # If the new route is shorter than the old one
+            elif iCost + cost < routingTable[dest][i]:
+                routingTable[dest][i] = iCost + cost
+                modified = True
+
+        return modified
 
     def to_byte_S(self):
-        return json.dumps(self.distances).encode()
+        return json.dumps(self.distances)
 
     def from_byte_S(self, byte_S):
-        self.distances = json.loads(byte_S.decode("utf-8"))
+        map = json.loads(byte_S)
+        for dest,cost in map.items():
+            self.distances[int(dest)] = cost
 
 
 ## Implements a multi-interface router described in class
@@ -198,10 +217,9 @@ class Router:
     #  @param i Incoming interface number for packet p
     def forward_packet(self, p, i):
         try:
-            # TODO: Here you will need to implement a lookup into the
-            # forwarding table to find the appropriate outgoing interface
-            # for now we assume the outgoing interface is (i+1)%2
-            self.intf_L[(i + 1) % 2].put(p.to_byte_S(), 'out', True)
+            links = self.rt_tbl_D[p.dst_addr]
+            interf = min(links, key=links.get)
+            self.intf_L[interf].put(p.to_byte_S(), 'out', True)
             print('%s: forwarding packet "%s" from interface %d to %d' % (self, p, i, (i + 1) % 2))
         except queue.Full:
             print('%s: packet "%s" lost on interface %d' % (self, p, i))
@@ -210,24 +228,28 @@ class Router:
     ## forward the packet according to the routing table
     #  @param p Packet containing routing information
     def update_routes(self, p, i):
-        # Get the routing table
-        table = RoutingTable()
-        table.from_byte_S(p.data_S)
+        # Get the distance vector
+        vec = DistanceVector()
+        vec.from_byte_S(p.data_S)
 
-        # Check it against this table
-        for x, y in table.distances.items():
-            if (self.rt_tbl_D[])
+        # Try to update the current table
+        if vec.update_routing_table(i, self.intf_L[i].cost, self.rt_tbl_D):
+            # Send update to all outputs
+            for i in range(0, len(self.intf_L)):
+                self.send_routes(i)
 
-        # possibly send out routing updates
         print('%s: Received routing update %s from interface %d' % (self, p, i))
 
     ## send out route update
     # @param i Interface number on which to send out a routing update
     def send_routes(self, i):
-        # a sample route update packet
-        p = NetworkPacket(0, 'control', 'Sample routing table packet')
+        # Create the distance vector
+        vec = DistanceVector()
+        vec.from_routing_table(self.rt_tbl_D)
+
+        # Create the packet
+        p = NetworkPacket(0, 'control', vec.to_byte_S())
         try:
-            # TODO: add logic to send out a route update
             print('%s: sending routing update "%s" from interface %d' % (self, p, i))
             self.intf_L[i].put(p.to_byte_S(), 'out', True)
         except queue.Full:
@@ -237,9 +259,32 @@ class Router:
     ## Print routing table
     def print_routes(self):
         print('%s: routing table' % self)
-        # TODO: print the routes as a two dimensional table for easy inspection
-        # Currently the function just prints the route table as a dictionary
-        print(self.rt_tbl_D)
+
+        # Print out destinations
+        print("   ", end="")
+        for dest in self.rt_tbl_D.keys():
+            print("%d" % dest, end=" ")
+
+        # Print out cost from self
+        print("\n%s:" % self.name, end=" ")
+        for i in range(0, len(self.rt_tbl_D)):
+            if i in self.rt_tbl_D:
+                print("%d" % min(self.rt_tbl_D[i].values()), end=" ")
+            else:
+                print("?", end=" ")
+
+        # Print out cost from links
+        for link in range(0, len(self.intf_L)):
+            print("\n%d:" % link, end=" ")
+            for i in range(0, len(self.rt_tbl_D)):
+                if i in self.rt_tbl_D:
+                    if link in self.rt_tbl_D[i]:
+                        print("%d" % self.rt_tbl_D[i][link], end=" ")
+                    else:
+                        print("?", end=" ")
+                else:
+                    print("?", end=" ")
+        print("")
 
     ## thread target for the host to keep forwarding data
     def run(self):
