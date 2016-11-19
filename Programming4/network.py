@@ -267,7 +267,7 @@ class Router:
 
         # Print out cost from self
         print("\n%s:" % self.name, end=" ")
-        for i in range(0, len(self.rt_tbl_D)):
+        for i in range(1, len(self.rt_tbl_D) + 1):
             if i in self.rt_tbl_D:
                 print("%d" % min(self.rt_tbl_D[i].values()), end=" ")
             else:
@@ -276,7 +276,7 @@ class Router:
         # Print out cost from links
         for link in range(0, len(self.intf_L)):
             print("\n%d:" % link, end=" ")
-            for i in range(0, len(self.rt_tbl_D)):
+            for i in range(1, len(self.rt_tbl_D) + 1):
                 if i in self.rt_tbl_D:
                     if link in self.rt_tbl_D[i]:
                         print("%d" % self.rt_tbl_D[i][link], end=" ")
