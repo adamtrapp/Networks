@@ -14,9 +14,8 @@ class Interface:
     #  @param cost - of the interface used in routing
     #  @param capacity - the capacity of the link in bps
     def __init__(self, cost=0, maxsize=0, capacity=500):
-        queue_factory = lambda: queue.Queue(maxsize)
-        self.in_queue = defaultdict(queue_factory)
-        self.out_queue = defaultdict(queue_factory)
+        self.in_queue = queue.Queue(maxsize)
+        self.out_queue = defaultdict(lambda: queue.Queue(maxsize))
         self.cost = cost
         self.capacity = capacity #serialization rate
         self.next_avail_time = 0 #the next time the interface can transmit a packet
@@ -26,18 +25,18 @@ class Interface:
     def get(self, in_or_out):
         try:
             if in_or_out == 'in':
+                pkt_S = self.in_queue.get(False)
+                return pkt_S
+            else:
                 # Enumerate priorities from highest to lowest
-                for priority in sorted(self.in_queue.keys(), reverse=True):
+                for priority in sorted(self.out_queue.keys(), reverse=True):
                     # If there are no entries in this priority, skip it
-                    if self.in_queue[priority].empty():
+                    if self.out_queue[priority].empty():
                         continue
 
                     # Get the first packet waiting in this priority queue
-                    pkt_S = self.in_queue[priority].get(False)
+                    pkt_S = self.out_queue[priority].get(False)
                     return pkt_S
-            else:
-                pkt_S = self.out_queue.get(False)
-                return pkt_S
         except queue.Empty:
             return None
         
@@ -45,14 +44,20 @@ class Interface:
     # @param pkt - Packet to be inserted into the queue
     # @param in_or_out - use 'in' or 'out' interface
     # @param block - if True, block until room in queue, if False may throw queue.Full exception
-    def put(self, pkt, priority, in_or_out, block=False):
+    def put(self, pkt_S, in_or_out, block=False, priority=0):
         # Figure out which queue we're putting into
         if in_or_out == 'out':
-            put_queue = self.out_queue
+            put_queue = self.out_queue[priority]
         else:
             put_queue = self.in_queue
 
-        put_queue[priority].put(pkt, block)
+        put_queue.put(pkt_S, block)
+
+    def out_queue_empty(self):
+        return all(q.empty() for p,q in self.out_queue.items())
+
+    def out_queue_size(self):
+        return sum(q.qsize() for p,q in self.out_queue.items())
 
         
 ## Implements a network layer packet (different from the RDT packet 
@@ -152,7 +157,7 @@ class Host:
     def udt_send(self, dst_addr, data_S, priority=0):
         p = NetworkPacket(dst_addr, 'data', priority, data_S)
         print('%s: sending packet "%s"' % (self, p))
-        self.intf_L[0].put(p.to_byte_S(), p.priority_S, 'out')  # send packets always enqueued successfully
+        self.intf_L[0].put(p.to_byte_S(), 'out', priority=p.priority_S)  # send packets always enqueued successfully
         
     ## receive packet from the network layer
     def udt_receive(self):
@@ -222,7 +227,7 @@ class Router:
             # TODO: Here you will need to implement a lookup into the 
             # forwarding table to find the appropriate outgoing interface
             # for now we assume the outgoing interface is (i+1)%2
-            self.intf_L[(i+1)%2].put(p.to_byte_S(), p.priority_S, 'out', True)
+            self.intf_L[(i+1)%2].put(p.to_byte_S(), 'out', block=True, priority=p.priority_S)
             print('%s: forwarding packet "%s" from interface %d to %d' % (self, p, i, (i+1)%2))
         except queue.Full:
             print('%s: packet "%s" lost on interface %d' % (self, p, i))
@@ -243,7 +248,7 @@ class Router:
         try:
             #TODO: add logic to send out a route update
             print('%s: sending routing update "%s" from interface %d' % (self, p, i))
-            self.intf_L[i].put(p.to_byte_S(), p.priority_S, 'out', True)
+            self.intf_L[i].put(p.to_byte_S(), 'out', block=True, priority=p.priority_S)
         except queue.Full:
             print('%s: packet "%s" lost on interface %d' % (self, p, i))
             pass

@@ -32,7 +32,7 @@ class Link:
         for (node_a, node_a_intf, node_b, node_b_intf) in [(self.node_1, self.node_1_intf, self.node_2, self.node_2_intf), (self.node_2, self.node_2_intf, self.node_1, self.node_1_intf)]: 
             intf_a = node_a.intf_L[node_a_intf]
             intf_b = node_b.intf_L[node_b_intf]
-            if intf_a.out_queue.empty():
+            if intf_a.out_queue_empty():
                 continue #continue if no packet to transfer
             #otherwise try transmitting the packet
             try:
@@ -47,7 +47,7 @@ class Link:
                     print('%s: transmitting packet "%s" on %s %s -> %s, %s \n' \
                           ' - seconds until the next available time %f\n' \
                           ' - queue size %d\n' \
-                          % (self, pkt_S, node_a, node_a_intf, node_b, node_b_intf, intf_a.next_avail_time - time.time(), intf_a.out_queue.qsize()))
+                          % (self, pkt_S, node_a, node_a_intf, node_b, node_b_intf, intf_a.next_avail_time - time.time(), intf_a.out_queue_size()))
                 # uncomment the lines below to see waiting time until next transmission
 #                 else:
 #                     print('%s: waiting to transmit packet on %s %s -> %s, %s for another %f milliseconds' % (self, node_a, node_a_intf, node_b, node_b_intf, intf_a.next_avail_time - time.time()))    
