@@ -70,7 +70,7 @@ if __name__ == '__main__':
 
     #add all the links
     link_layer.add_link(link.Link(client1, 0, router_a, 0))
-    link_layer.add_link(link.Link(client1, 0, router_a, 1))
+    link_layer.add_link(link.Link(client2, 0, router_a, 1))
     link_layer.add_link(link.Link(router_a, 2, router_b, 0))
     link_layer.add_link(link.Link(router_a, 3, router_c, 0))
     link_layer.add_link(link.Link(router_b, 1, router_d, 0))
@@ -89,7 +89,8 @@ if __name__ == '__main__':
     for i in range(5):
         priority = i % 2
         print(priority)
-        client1.udt_send(3, 'Sample client data %d' % i, priority)
+        client1.udt_send(3, 'Sample client1 data %d' % i, priority)
+        client2.udt_send(3, 'Sample client2 data %d' % i, priority)
 
     #give the network sufficient time to transfer all packets before quitting
     sleep(simulation_time)
