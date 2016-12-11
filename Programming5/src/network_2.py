@@ -167,7 +167,10 @@ class MPLS_frame:
         return self(label, data_S)
 
     def __len__(self):
-        return self.label_length + len(self.data_S)
+        return len(self.to_byte_S())
+
+    def __str__(self):
+        return self.to_byte_S()
 
 ## Implements a network host for receiving and transmitting data
 class Host:
