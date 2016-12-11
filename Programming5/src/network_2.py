@@ -166,6 +166,9 @@ class MPLS_frame:
 
         return self(label, data_S)
 
+    def __len__(self):
+        return self.label_length + len(self.data_S)
+
 ## Implements a network host for receiving and transmitting data
 class Host:
     ##@param addr: address of this node represented as an integer
@@ -226,10 +229,7 @@ class Router:
     def __str__(self):
         return 'Router_%s' % (self.name)
 
-    def mpls_enabled(self):
-        return self.fwd_tbl_D is not None
-
-    ## look through the content of incoming interfaces and 
+    ## look through the content of incoming interfaces and
     # process data and control packets
     def process_queues(self):
         for i in range(len(self.intf_L)):
@@ -242,14 +242,13 @@ class Router:
 
                 # If the packet is an MPLS packet
                 if isinstance(pkt_S, MPLS_frame):
-                    assert self.mpls_enabled()
                     in_label = pkt_S.label
                     pkt_S = pkt_S.data_S
 
                 # Decode the packet
                 pkt = NetworkPacket.from_byte_S(pkt_S)
                 if pkt.prot_S == 'data':
-                    self.forward_packet(pkt, i, in_label=in_label)
+                    self.forward_packet(pkt, i, in_label)
                 elif pkt.prot_S == 'control':
                     self.update_routes(pkt, i)
                 else:
@@ -259,19 +258,22 @@ class Router:
     #  @param p Packet to forward
     #  @param in_intf Incoming interface number for packet pkt
     #  @param in_label Incoming label for the packet
-    def forward_packet(self, pkt, in_intf, in_label=None):
+    def forward_packet(self, pkt, in_intf, in_label):
         try:
-            out_intf = None
             pkt_S = pkt.to_byte_S()
 
             # If we should forward using MPLS labels
             if in_label is not None:
-                assert self.mpls_enabled()
                 (out_label, out_intf) = self.fwd_tbl_D[in_label]
-                pkt_S = MPLS_frame(out_label, pkt_S)
             else:
-                out_intf = (in_intf + 1) % 2
+                (out_label, out_intf) = self.rt_tbl_D[pkt.dst_addr]
 
+            # If we found an out label
+            if out_label is not None:
+                # Wrap the packet in an MPLS frame
+                pkt_S = MPLS_frame(out_label, pkt_S)
+
+            # Output the packet
             self.intf_L[out_intf].put(pkt_S, 'out', block=True, priority=pkt.priority_S)
             print('%s: forwarding packet "%s" from interface %d to %d' % (self, pkt, in_intf, out_intf))
         except queue.Full:

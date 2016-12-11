@@ -26,15 +26,27 @@ if __name__ == '__main__':
     router_a = network.Router(name='A',
                               intf_cost_L=[1,1], 
                               intf_capacity_L=[500,500],
-                              rt_tbl_D={1: {0: 1}},
-                              fwd_tbl_D=None,
+                              rt_tbl_D={
+                                  1: (None, 0),
+                                  2: ('2', 1),
+                              },
+                              fwd_tbl_D={
+                                  '1': (None, 0),
+                                  '2': ('2', 1)
+                              },
                               max_queue_size=router_queue_size)
     object_L.append(router_a)
     router_b = network.Router(name='B',
                               intf_cost_L=[1,3], 
                               intf_capacity_L=[500,100],
-                              rt_tbl_D={2: {1: 3}},
-                              fwd_tbl_D=None,
+                              rt_tbl_D={
+                                  1: ('1', 0),
+                                  2: {None, 1}
+                              },
+                              fwd_tbl_D={
+                                  '1': ('1', 0),
+                                  '2': (None, 1),
+                              },
                               max_queue_size=router_queue_size)
     object_L.append(router_b)
     
