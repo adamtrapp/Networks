@@ -17,8 +17,10 @@ if __name__ == '__main__':
     object_L = [] #keeps track of objects, so we can kill their threads
     
     #create network hosts
-    client = network.Host(1)
-    object_L.append(client)
+    client1 = network.Host(1)
+    object_L.append(client1)
+    client2 = network.Host(2)
+    object_L.append(client2)
     server = network.Host(2)
     object_L.append(server)
     
@@ -77,9 +79,13 @@ if __name__ == '__main__':
     object_L.append(link_layer)
     
     #add all the links
-    link_layer.add_link(link.Link(client, 0, router_a, 0))
-    link_layer.add_link(link.Link(router_a, 1, router_b, 0))
-    link_layer.add_link(link.Link(router_b, 1, server, 0))
+    link_layer.add_link(link.Link(client1, 0, router_a, 0))
+    link_layer.add_link(link.Link(client1, 0, router_a, 1))
+    link_layer.add_link(link.Link(router_a, 2, router_b, 0))
+    link_layer.add_link(link.Link(router_a, 3, router_c, 0))
+    link_layer.add_link(link.Link(router_b, 1, router_d, 0))
+    link_layer.add_link(link.Link(router_c, 1, router_d, 1))
+    link_layer.add_link(link.Link(router_d, 2, server, 0))
     
     
     #start all the objects
