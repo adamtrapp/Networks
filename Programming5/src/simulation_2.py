@@ -27,28 +27,50 @@ if __name__ == '__main__':
                               intf_cost_L=[1,1], 
                               intf_capacity_L=[500,500],
                               rt_tbl_D={
-                                  1: (None, 0),
-                                  2: ('2', 1),
+                                  0: {3: ('0', 2)},
+                                  1: {3: ('1', 3)}
                               },
                               fwd_tbl_D={
-                                  '1': (None, 0),
-                                  '2': ('2', 1)
+                                  '0': ('0', 2),
+                                  '1': ('1', 3)
                               },
                               max_queue_size=router_queue_size)
     object_L.append(router_a)
     router_b = network.Router(name='B',
-                              intf_cost_L=[1,3], 
-                              intf_capacity_L=[500,100],
+                              intf_cost_L=[1,1],
+                              intf_capacity_L=[500,500],
                               rt_tbl_D={
-                                  1: ('1', 0),
-                                  2: {None, 1}
+                                  0: {3: ('3', 1)},
                               },
                               fwd_tbl_D={
-                                  '1': ('1', 0),
-                                  '2': (None, 1),
+                                  '0': ('3', 1)
                               },
                               max_queue_size=router_queue_size)
     object_L.append(router_b)
+    router_c = network.Router(name='C',
+                              intf_cost_L=[1, 1],
+                              intf_capacity_L=[500, 500],
+                              rt_tbl_D={
+                                  0: {3: ('4', 1)}
+                              },
+                              fwd_tbl_D={
+                                  '1': ('4', 1),
+                              },
+                              max_queue_size=router_queue_size)
+    object_L.append(router_c)
+    router_d = network.Router(name='D',
+                              intf_cost_L=[1, 1],
+                              intf_capacity_L=[500, 500],
+                              rt_tbl_D={
+                                  0: {3: (None, 2)},
+                                  1: {3: (None, 2)}
+                              },
+                              fwd_tbl_D={
+                                  '3': (None, 2),
+                                  '4': (None, 2),
+                              },
+                              max_queue_size=router_queue_size)
+    object_L.append(router_d)
     
     #create a Link Layer to keep track of links between network nodes
     link_layer = link.LinkLayer()
