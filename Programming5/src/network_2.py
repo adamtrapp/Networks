@@ -15,7 +15,10 @@ class Interface:
     #  @param capacity - the capacity of the link in bps
     def __init__(self, cost=0, maxsize=0, capacity=500):
         self.in_queue = queue.Queue(maxsize)
-        self.out_queue = defaultdict(lambda: queue.Queue(maxsize))
+        self.out_queue = {
+            0: queue.Queue(maxsize),
+            1: queue.Queue(maxsize)
+        }
         self.cost = cost
         self.capacity = capacity  # serialization rate
         self.next_avail_time = 0  # the next time the interface can transmit a packet
@@ -135,19 +138,33 @@ class NetworkPacket:
         return self(dst_addr, prot_S, priority_S, data_S)
 
 
-class MPLS_frame(NetworkPacket):
-    labelLength = 20
-    expLength = 3
-    sLength = 1
-    ttlLength = 5
+class MPLS_frame:
+    label_offset = 0
+    label_length = 20
+    data_S_offset = label_offset + label_length
 
-    def __init__(self, packet, label, exp, s, ttl, dst_addr, prot_S, priority_S, data_S):
+    def __init__(self, label, data_S):
         self.label = label
-        self.exp = exp
-        self.s = s
-        self.ttl = ttl
-        NetworkPacket.__init__(dst_addr, prot_S, priority_S, data_S)
+        self.data_S = data_S
 
+    def to_byte_S(self):
+        # Format in the label
+        byte_S = str(self.label).zfill(self.label_length)
+
+        # Format in the data
+        byte_S += self.data_S
+
+        return byte_S
+
+    @classmethod
+    def from_byte_S(self, byte_S):
+        # Parse out the label
+        label = byte_S[self.label_offset: self.label_length]
+
+        # Parse out the data
+        data_S = byte_S[self.data_S_offset:]
+
+        return self(label, data_S)
 
 ## Implements a network host for receiving and transmitting data
 class Host:
@@ -191,26 +208,26 @@ class Host:
 ## Implements a multi-interface router described in class
 class Router:
     ##@param name: friendly router name for debugging
-    # @param intf_cost_L: outgoing cost of interfaces (and interface number)
-    # @param intf_capacity_L: capacities of outgoing interfaces in bps 
-    # @param rt_tbl_D: routing table dictionary (starting reachability), eg. {1: {1: 1}} # packet to host 1 through interface 1 for cost 1
+    # @param intf_capacity_L: capacities of outgoing interfaces in bps
     # @param max_queue_size: max queue length (passed to Interface)
-    def __init__(self, name, intf_cost_L, intf_capacity_L, rt_tbl_D, max_queue_size):
+    def __init__(self, name, intf_cost_L, intf_capacity_L, rt_tbl_D, fwd_tbl_D, max_queue_size):
         self.stop = False  # for thread termination
         self.name = name
         # create a list of interfaces
         # note the number of interfaces is set up by out_intf_cost_L
-        assert (len(intf_cost_L) == len(intf_capacity_L))
+        assert(len(intf_cost_L) == len(intf_capacity_L))
         self.intf_L = []
         for i in range(len(intf_cost_L)):
             self.intf_L.append(Interface(intf_cost_L[i], max_queue_size, intf_capacity_L[i]))
         # set up the routing table for connected hosts
         self.rt_tbl_D = rt_tbl_D
-
-        ## called when printing the object
+        self.fwd_tbl_D = fwd_tbl_D
 
     def __str__(self):
         return 'Router_%s' % (self.name)
+
+    def mpls_enabled(self):
+        return self.fwd_tbl_D is not None
 
     ## look through the content of incoming interfaces and 
     # process data and control packets
@@ -221,26 +238,44 @@ class Router:
             pkt_S = self.intf_L[i].get('in')
             # if packet exists make a forwarding decision
             if pkt_S is not None:
-                p = NetworkPacket.from_byte_S(pkt_S)  # parse a packet out
-                if p.prot_S == 'data':
-                    self.forward_packet(p, i)
-                elif p.prot_S == 'control':
-                    self.update_routes(p, i)
+                in_label = None
+
+                # If the packet is an MPLS packet
+                if isinstance(pkt_S, MPLS_frame):
+                    assert self.mpls_enabled()
+                    in_label = pkt_S.label
+                    pkt_S = pkt_S.data_S
+
+                # Decode the packet
+                pkt = NetworkPacket.from_byte_S(pkt_S)
+                if pkt.prot_S == 'data':
+                    self.forward_packet(pkt, i, in_label=in_label)
+                elif pkt.prot_S == 'control':
+                    self.update_routes(pkt, i)
                 else:
-                    raise Exception('%s: Unknown packet type in packet %s' % (self, p))
+                    raise Exception('%s: Unknown packet type in packet %s' % (self, pkt_S))
 
     ## forward the packet according to the routing table
     #  @param p Packet to forward
-    #  @param i Incoming interface number for packet p
-    def forward_packet(self, p, i):
+    #  @param in_intf Incoming interface number for packet pkt
+    #  @param in_label Incoming label for the packet
+    def forward_packet(self, pkt, in_intf, in_label=None):
         try:
-            # TODO: Here you will need to implement a lookup into the 
-            # forwarding table to find the appropriate outgoing interface
-            # for now we assume the outgoing interface is (i+1)%2
-            self.intf_L[(i + 1) % 2].put(p.to_byte_S(), 'out', block=True, priority=p.priority_S)
-            print('%s: forwarding packet "%s" from interface %d to %d' % (self, p, i, (i + 1) % 2))
+            out_intf = None
+            pkt_S = pkt.to_byte_S()
+
+            # If we should forward using MPLS labels
+            if in_label is not None:
+                assert self.mpls_enabled()
+                (out_label, out_intf) = self.fwd_tbl_D[in_label]
+                pkt_S = MPLS_frame(out_label, pkt_S)
+            else:
+                out_intf = (in_intf + 1) % 2
+
+            self.intf_L[out_intf].put(pkt_S, 'out', block=True, priority=pkt.priority_S)
+            print('%s: forwarding packet "%s" from interface %d to %d' % (self, pkt, in_intf, out_intf))
         except queue.Full:
-            print('%s: packet "%s" lost on interface %d' % (self, p, i))
+            print('%s: packet "%s" lost on interface %d' % (self, pkt, in_intf))
             pass
 
     ## forward the packet according to the routing table

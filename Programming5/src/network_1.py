@@ -15,7 +15,10 @@ class Interface:
     #  @param capacity - the capacity of the link in bps
     def __init__(self, cost=0, maxsize=0, capacity=500):
         self.in_queue = queue.Queue(maxsize)
-        self.out_queue = defaultdict(lambda: queue.Queue(maxsize))
+        self.out_queue = {
+            0: queue.Queue(maxsize),
+            1: queue.Queue(maxsize)
+        }
         self.cost = cost
         self.capacity = capacity #serialization rate
         self.next_avail_time = 0 #the next time the interface can transmit a packet
