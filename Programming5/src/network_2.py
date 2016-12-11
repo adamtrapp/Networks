@@ -194,7 +194,8 @@ class Host:
     def udt_receive(self):
         pkt_S = self.intf_L[0].get('in')
         if pkt_S is not None:
-            print('%s: received packet "%s"' % (self, pkt_S))
+            pkt = NetworkPacket.from_byte_S(pkt_S)
+            print('%s: received packet "%s", priority: %d' % (self, pkt_S, pkt.priority_S))
 
     ## thread target for the host to keep receiving data
     def run(self):
@@ -266,7 +267,7 @@ class Router:
             if in_label is not None:
                 (out_label, out_intf) = self.fwd_tbl_D[in_label]
             else:
-                (out_label, out_intf) = self.rt_tbl_D[pkt.dst_addr]
+                (out_label, out_intf) = self.rt_tbl_D[in_intf][pkt.dst_addr]
 
             # If we found an out label
             if out_label is not None:
